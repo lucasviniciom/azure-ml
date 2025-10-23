@@ -1,0 +1,215 @@
+{
+  "cells": [
+    {
+      "cell_type": "code",
+      "source": [
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "from sklearn.preprocessing import StandardScaler\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "from scipy import stats\n",
+        "\n",
+        "# Generate synthetic dataset for testing\n",
+        "np.random.seed(42)\n",
+        "n_samples = 100\n",
+        "data = {\n",
+        "    'income': np.random.normal(50000, 15000, n_samples),\n",
+        "    'credit_score': np.random.normal(650, 50, n_samples),\n",
+        "    'job_title': np.random.choice(['Engineer', 'Teacher', 'Doctor', 'Artist'], n_samples),\n",
+        "    'target': np.random.choice([0, 1], n_samples)\n",
+        "}\n",
+        "\n",
+        "# Introduce missing values and outliers for testing\n",
+        "data['income'][np.random.randint(0, n_samples, 5)] = np.nan\n",
+        "data['credit_score'][np.random.randint(0, n_samples, 3)] = np.nan\n",
+        "data['income'][np.random.randint(0, n_samples, 2)] = 150000  # Outliers\n",
+        "df = pd.DataFrame(data)"
+      ],
+      "outputs": [],
+      "execution_count": 1,
+      "metadata": {
+        "gather": {
+          "logged": 1761092249245
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df"
+      ],
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "execution_count": 2,
+          "data": {
+            "text/plain": "          income  credit_score job_title  target\n0   57450.712295    579.231463   Teacher       0\n1   47926.035482    628.967734   Teacher       0\n2   59715.328072    632.864274  Engineer       0\n3   72845.447846    609.886137    Artist       1\n4   46487.699379    641.935714  Engineer       0\n..           ...           ...       ...     ...\n95  28047.275778    669.265869   Teacher       0\n96  54441.804156    605.807128  Engineer       0\n97  53915.829083    657.686255   Teacher       0\n98  50076.701850    652.910436  Engineer       0\n99  46481.192999    592.851485   Teacher       0\n\n[100 rows x 4 columns]",
+            "text/html": "<div>\n<style scoped>\n    .dataframe tbody tr th:only-of-type {\n        vertical-align: middle;\n    }\n\n    .dataframe tbody tr th {\n        vertical-align: top;\n    }\n\n    .dataframe thead th {\n        text-align: right;\n    }\n</style>\n<table border=\"1\" class=\"dataframe\">\n  <thead>\n    <tr style=\"text-align: right;\">\n      <th></th>\n      <th>income</th>\n      <th>credit_score</th>\n      <th>job_title</th>\n      <th>target</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>0</th>\n      <td>57450.712295</td>\n      <td>579.231463</td>\n      <td>Teacher</td>\n      <td>0</td>\n    </tr>\n    <tr>\n      <th>1</th>\n      <td>47926.035482</td>\n      <td>628.967734</td>\n      <td>Teacher</td>\n      <td>0</td>\n    </tr>\n    <tr>\n      <th>2</th>\n      <td>59715.328072</td>\n      <td>632.864274</td>\n      <td>Engineer</td>\n      <td>0</td>\n    </tr>\n    <tr>\n      <th>3</th>\n      <td>72845.447846</td>\n      <td>609.886137</td>\n      <td>Artist</td>\n      <td>1</td>\n    </tr>\n    <tr>\n      <th>4</th>\n      <td>46487.699379</td>\n      <td>641.935714</td>\n      <td>Engineer</td>\n      <td>0</td>\n    </tr>\n    <tr>\n      <th>...</th>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n      <td>...</td>\n    </tr>\n    <tr>\n      <th>95</th>\n      <td>28047.275778</td>\n      <td>669.265869</td>\n      <td>Teacher</td>\n      <td>0</td>\n    </tr>\n    <tr>\n      <th>96</th>\n      <td>54441.804156</td>\n      <td>605.807128</td>\n      <td>Engineer</td>\n      <td>0</td>\n    </tr>\n    <tr>\n      <th>97</th>\n      <td>53915.829083</td>\n      <td>657.686255</td>\n      <td>Teacher</td>\n      <td>0</td>\n    </tr>\n    <tr>\n      <th>98</th>\n      <td>50076.701850</td>\n      <td>652.910436</td>\n      <td>Engineer</td>\n      <td>0</td>\n    </tr>\n    <tr>\n      <th>99</th>\n      <td>46481.192999</td>\n      <td>592.851485</td>\n      <td>Teacher</td>\n      <td>0</td>\n    </tr>\n  </tbody>\n</table>\n<p>100 rows × 4 columns</p>\n</div>"
+          },
+          "metadata": {}
+        }
+      ],
+      "execution_count": 2,
+      "metadata": {
+        "gather": {
+          "logged": 1761092249345
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Handle missing values by filling with median\n",
+        "for column in df.select_dtypes(include=['float64', 'int64']).columns:\n",
+        "    df[column].fillna(df[column].median(), inplace=True)"
+      ],
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": "/tmp/ipykernel_6101/2423168110.py:3: FutureWarning: A value is trying to be set on a copy of a DataFrame or Series through chained assignment using an inplace method.\nThe behavior will change in pandas 3.0. This inplace method will never work because the intermediate object on which we are setting values always behaves as a copy.\n\nFor example, when doing 'df[col].method(value, inplace=True)', try using 'df.method({col: value}, inplace=True)' or df[col] = df[col].method(value) instead, to perform the operation inplace on the original object.\n\n\n  df[column].fillna(df[column].median(), inplace=True)\n"
+        }
+      ],
+      "execution_count": 3,
+      "metadata": {
+        "gather": {
+          "logged": 1761092249444
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Remove duplicates\n",
+        "df.drop_duplicates(inplace=True)"
+      ],
+      "outputs": [],
+      "execution_count": 4,
+      "metadata": {
+        "gather": {
+          "logged": 1761092249556
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#Standardize numerical features \n",
+        "scaler = StandardScaler()\n",
+        "numeric_features = df.select_dtypes(include=['float64', 'int64']).columns\n",
+        "df[numeric_features] = scaler.fit_transform(df[numeric_features])"
+      ],
+      "outputs": [],
+      "execution_count": 5,
+      "metadata": {
+        "gather": {
+          "logged": 1761092249657
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# One-hot encode categorical features\n",
+        "df = pd.get_dummies(df, drop_first=True)"
+      ],
+      "outputs": [],
+      "execution_count": 6,
+      "metadata": {
+        "gather": {
+          "logged": 1761092249744
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Detect and remove outliers using Z-score\n",
+        "z_scores = np.abs(stats.zscore(df.select_dtypes(include=['float64', 'int64'])))\n",
+        "df = df[(z_scores < 3).all(axis=1)]"
+      ],
+      "outputs": [],
+      "execution_count": 7,
+      "metadata": {
+        "gather": {
+          "logged": 1761092249835
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Apply log transformation to skewed data\n",
+        "df['income_log'] = np.log1p(df['income'])"
+      ],
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": "/anaconda/envs/new_ml_env/lib/python3.12/site-packages/pandas/core/arraylike.py:399: RuntimeWarning: invalid value encountered in log1p\n  result = getattr(ufunc, method)(*inputs, **kwargs)\n"
+        }
+      ],
+      "execution_count": 8,
+      "metadata": {
+        "gather": {
+          "logged": 1761092249927
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#Split data\n",
+        "X = df.drop('target', axis=1)\n",
+        "y = df['target']\n",
+        "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)"
+      ],
+      "outputs": [],
+      "execution_count": 9,
+      "metadata": {
+        "gather": {
+          "logged": 1761092250005
+        }
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "outputs": [],
+      "execution_count": null,
+      "metadata": {}
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "new_ml_env",
+      "language": "python",
+      "display_name": "ML Project Env"
+    },
+    "language_info": {
+      "name": "python",
+      "version": "3.12.12",
+      "mimetype": "text/x-python",
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "pygments_lexer": "ipython3",
+      "nbconvert_exporter": "python",
+      "file_extension": ".py"
+    },
+    "microsoft": {
+      "ms_spell_check": {
+        "ms_spell_check_language": "en"
+      }
+    },
+    "kernel_info": {
+      "name": "new_ml_env"
+    },
+    "nteract": {
+      "version": "nteract-front-end@1.0.0"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 2
+}
